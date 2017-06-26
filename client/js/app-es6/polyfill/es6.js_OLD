@@ -1,0 +1,11 @@
+//não precisa mais pois estamos o Babel como transpiler
+
+//ver head de index.html
+console.log(' Construindo polyfill para funções ES6 não suportadas no navegador...');
+
+if (!Array.prototype.includes) {
+    console.log('Polyfill para Array.includes aplicado.');
+    Array.prototype.includes = function(elemento) {
+        return this.indexOf(elemento) != -1;
+    }
+}

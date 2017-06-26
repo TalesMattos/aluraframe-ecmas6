@@ -1,0 +1,91 @@
+- na pasta .../client/js/app-es6: � onde ficam os arquivos *.js escritos em ECMA-Script 6
+- na pasta .../client/js/app: � onde ficam os compilados ECMA-Script 5, criados automaticamente pelo transpiler Babel (Open Source)
+    para serem suportados pela maioria dos navegadores, inclusive os mobiles. Nem todos os navegadores implementam EC6 na plenitude
+    (poderia ser via TypeScript da Microsoft)
+
+Instala��o do BABEL Transpiler (m�dulo do NodeJS):
+a) No terminal, navegue at� a pasta 'client' do projeto
+b) Use o gerenciador de pacotes do NodeJS: 'npm'
+    b.1) execute o comando: 'npm init', para criar um arquivo chamado: 'package.json'
+        b.1.1) 'package.json' �, a grosso modo, como uma caderneta onde � anotado todos os m�dulos do Node.js que o projeto vai usar
+    b.2) Entre com 'Enter' para todas as perguntas subsequentes
+
+c) executar o comando npm install. Este comando ler� seu arquivo package.json e baixar� todas depend�ncias listadas nele.
+    Instala��o do Babel (agora sim!): 'npm install babel-cli@6.10.1 --save-dev' (esse � o cliente do babel)
+    c.1) ...'--save-dev' � para salvar a depend�ncia no 'package.json'
+            (-dev significa que � s� pra ambiente de desenvolvimento. Quando executar build para produ��o, essa dependencia n�o ir� acombanhar a aplica��o)
+    c.2) configure o proxy antes se necess�rio: 'npm config get <prop>' => 'npm config get proxy' ou 'npm config get'
+        $> npm config set proxy http://<user>:<pass>@<proxy-address>:<port>
+        $> npm config set https-proxy https://<user>:<pass>@<proxy-address>:<port>
+    c.3) Feito isso, ser� a criada a pasta 'node_modules'
+
+d) O Babel sozinho n�o resolve. Ele deve estar preparado para entender a sintaxe o ES6 e converter para ES5
+    (Para isso vamos carregar um preset do babel que est� preparado para isso)
+    d.1) executar: npm install babel-preset-es2015@6.9.0 --save-dev
+    d.2)Agora � necess�rio fazer a liga��o entre o babel-cli e o preset:
+        d.2.1) Na pasta 'client', criar o arquivo '.babelrc' (arquivo de configura��o do babel que � lido toda vez que � executado)
+                (*abra o arquivo para ver o conte�do)
+ 
+e) Devemos configurar o Babel
+    e.1) abra 'package.json' e altere a propriedade 'scripts', adicionando: [ "build" : "babel js/app-es6 -d js/app" ]
+        (quando executar vai: transcompilar tudo que est� em js/app-ec6 e colocar em ja/app)
+    e.2)No terminal, dentro da pasta client, execute: $> npm run build
+
+f) mas quando gerar um erro no console queremos que a linha do erro seja a linha do arquivo em es6 e n�o no arquivo em es5, para ajudar a debugar
+    f.1) Ent�o queremos um source-map. Altere o comando build, citado em 'e.1', para:
+         "build" : "babel js/app-es6 -d js/app --source-maps"
+         (O arquivo sourcemap possui a estrutura do arquivo original, ali�s, o arquivo original nem precisa existir em produ��o para que o sourcemap funcione.)
+         (Os sourcesmaps somente s�o carregados quando a ferramento de desenvolvimento do navegador (console) � iniciado/aberto
+            , n�o gerando preju�zos para o carregamento da aplica��o)
+
+g) n�o � produtivo executar toda vez 'npm run build' para transcompilar os arquivos. Para isso o Babel vem um 'Watcher'
+    O Watcher observa mudan�as nos arquivos e os transcompila automaticamente
+    g.1) altere o arquivo 'package.json' e adicione mais uma sub-propriedade na propriedade 'scripts':
+        "watch" : "babel js/app-es6 -d js/app --source-maps --watch"
+    g.2) No terminal, no diret�rio 'cliente', execute ao inv�s de 'npm run build',
+           $> npm run watch
+           (o terminal ir� travar, enquanto permanecer assim a transcompila��o se dar� de forma autom�tica ao salvar um arquivo es6)
+
+
+    Desta forma, conseguimos trabalhar com o que h� de mais moderno, sem nos preocuparmos com compatibilidade.
+    Por�m, se voc� est� trabalhando com um navegador que n�o suporta Promise, ter� que utilizar um polyfill para o mesmo. 
+Neste caso, o Babel n�o resolver�. Temos ainda alguns truques, mas que ficar�o para um outro curso.
+
+
+    Muitos tutoriais da internet instalam Babel e outros m�dulos do Node.js globalmente por uma quest�o de brevidade, 
+mas que n�o � uma boa pr�tica.
+    Se voc� precisa da nova vers�o do Babel porque seu projeto A depende de um novo recurso, a atualiza��o da instala��o 
+global ser� aplicada em todos os projetos. Ela pode funcionar perfeitamente em A, mas pode quebrar o projeto B que at� 
+ent�o funcionava se algum BUG foi introduzido, um BUG que s� afeta um recurso utilizado por B.
+    Sendo assim, instalamos Babel local ao projeto, contudo n�o � nada elegante a forma com que chamaremos manualmente o 
+bin�rio do babel em nosso terminal. Para contornar esse problema e ainda termos o babel instalado localmente para cada um 
+dos nosso projetos, podemos criar um script em package.json que chamar� o Babel para n�s.
+
+
+    ES2015 especificou seu pr�prio sistema de m�dulos que resolve tanto o problema do escopo global quanto o de carregamento de scripts.
+
+O ES6 possui um sistema de m�dulos, onde:
+Uma vez ativado o sistema de m�dulos do ES6, todo conte�do de um script deixa de estar no escopo global
+    , n�o sendo mais acess�vel para os outros. Nenhuma classe estaria mais no escopo global.
+Para tanto, � necess�rio que export e import sejam feitos em cada arquivo onde h� depend�ncias
+Por que isso?
+    Por exemplo: Imagine uma biblioteca externa que, por coincid�ncia, tenha uma classe com o mesmo nome de uma 
+ j� existente no sistema. Isso ir� ocasionar erro na aplica��o, pois o �ltimo script importado no html
+ que contiver a classe repetida, ir� sobrescrever a anterior.
+    Outro exemploe: Sem o sistema de m�dulos, devemos nos preocupar com a ordem de import dos scripts no html
+
+Os navegadores n�o implementam uma solu��o de como se dar� o carregamento inicial dos imports. 
+Apesar de fazer parte da especifica��o, ainda n�o h� consenso a respeito de como os scripts devem ser carregados pelo navegador. 
+� por isso que para usarmos o sistema de m�dulos oficial do JavaScript precisamos utilizar loaders de terceiros, que nada mais 
+s�o do que scripts especiais que far�o o carregamento dos nossos m�dulos. Neste treinamento, utilizaremos o SystemJs, 
+um carregador de m�dulos universal que suporta m�dulos do ES2015.
+Para isso, precisamos de um loader e ent�o usaremos uma biblioteca famosa no mercado: systemjs
+Usando o gerenciador de pacotes do Node.js, execute, na pasta client:
+    $> npm install systemjs@0.19.31 --save
+    $> npm install babel-plugin-transform-es2015-modules-systemjs@6.9.0 --save-dev
+        add em .babelrc:
+            "plugins" : ["transform-es2015-modules-systemjs"]
+    * ver index.html. Perceber� que h� algumas configura��es do systemjs. Em uma delas � tido que boot.js ser� o primeiro script a ser carregado
+    * ver boot.js 
+    
+Resumindo: para que possamos utilizar os m�dulos do ES2015 precisamos utilizar um loader e transcompilar nosso c�digo.

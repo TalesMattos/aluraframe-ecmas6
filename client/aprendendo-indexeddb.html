@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Aprendendo Indexed-DB</title>
+    </head>
+    <body>
+        <h3>Aprendendo Indexed-DB</h3>
+
+        <script src="js/app/models/Negociacao.js"></script>
+        <script>
+            
+            /*Não se abre uma conexão com o Indexed-DB, mas sim se solicita, por meio de 
+            uma requisição, a abertura de conexão. Ele pode atender de pronto ou não!*/
+            var openRequestIDB = window.indexedDB.open('aluraframe', 3); // nome e versão do banco
+            var connectionIDB;
+
+            /*Devemos tratar uma triade de eventos: 
+                1) openReq.onupgradeneeded 
+                2) openReq.onsuccess
+                3) openReq.onerror */
+
+
+            openRequestIDB.onupgradeneeded = e => {
+                // cria se não existe o banco aluraframe ou altera se mudar o número de versão
+                console.log('onupgradeneeded... Cria ou altera um banco já existente');   
+                
+                let connectionIDB_aux = e.target.result;// também é possível pegar a conexão aqui
+                
+                if (connectionIDB_aux.objectStoreNames.contains('negociacoes')) {
+                    console.log('object-store negociacoes já existe e será deletada');
+                    connectionIDB_aux.deleteObjectStore('negociacoes');
+                }
+
+                // Cria uma object-store (analogo a uma tabela de uma banco de dados relacional)
+                // no entanto, não há esquema (tipagem), é possível guardar qualquer coisa, inclusive objetos js
+                console.log('criano object-store negociacoes em aluraframe...');
+                connectionIDB_aux.createObjectStore('negociacoes', {autoIncrement:  true});
+            };
+
+            // aguardando sucesso na requisição de abertura de conexão
+            openRequestIDB.onsuccess = e => {
+                console.log('Conexão obtida com sucesso'); 
+                connectionIDB = e.target.result;// conexão  
+            };
+
+            // espera por um erro na requisição de abertura conexção
+            openRequestIDB.onerror = e => {
+                console.log(e.target.error);
+            };
+
+            function adicionar() {
+                let transaction = connectionIDB.transaction(['negociacoes'], 'readwrite');//poderia ser readonly também
+
+                //pede acesso à object-store (parece redundante mas é assim mesmo)
+                let objectStore = transaction.objectStore('negociacoes');               
+
+                let negociacao = new Negociacao(new Date(), 2, 45);
+
+                // faz-se uma requisição para adicionar na objectStore
+                let requestAddObjStore = objectStore.add(negociacao);
+
+                requestAddObjStore.onsuccess = e => {
+                    console.log('Negociação incluida com sucesso');
+                };
+
+                requestAddObjStore.onerror = e => {
+                    console.log('Não foi possível incluir a negociação. Erro');
+                };
+            }
+
+            function listarTodos() {
+                let transaction = connectionIDB.transaction(['negociacoes'], 'readwrite');
+                let objectStore = transaction.objectStore('negociacoes');
+                
+                //cursor para percorrer as negociacoes da object-store 'negociacoes'
+                let cursor = objectStore.openCursor();
+
+                let listaNegociacoes = [];
+
+                cursor.onsuccess = e => {
+                    let negAtual = e.target.result; // ponteiro para uma negociacao (object-store)
+                    if (negAtual) { // quando for nulo é pq nao tem mais object-store
+                        // só é guardado na object-store as propriedades do objeto (não o objeto propriamente dito)
+                        let dado = negAtual.value;
+                        listaNegociacoes.push(new Negociacao(dado._data, dado._quantidade, dado._valor));
+                        // avança para o próximo object-store
+                        negAtual.continue();
+                    } else {
+                        console.log(listaNegociacoes);
+                    }
+                };
+
+                cursor.onerror = e => {
+                    console.log(e.target.error.name);
+                };
+
+            }
+
+
+        </script>
+    </body>
+</html>
